@@ -37,7 +37,7 @@ const getKaohsiungWeather = async (req, res) => {
       {
         params: {
           Authorization: CWA_API_KEY,
-          locationName: "台北市",
+          locationName: "臺北市",
         },
       }
     );

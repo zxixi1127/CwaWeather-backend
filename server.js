@@ -16,11 +16,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
- * 取得高雄天氣預報
+ * 取得臺北市天氣預報
  * CWA 氣象資料開放平臺 API
  * 使用「一般天氣預報-今明 36 小時天氣預報」資料集
  */
-const getKaohsiungWeather = async (req, res) => {
+// 【修正點 1】 將函數名稱從 getKaohsiungWeather 改為更符合功能的 getTaipeiWeather
+const getTaipeiWeather = async (req, res) => { 
+  const targetCity = "臺北市"; // 定義目標城市，方便程式碼重用和閱讀
+
   try {
     // 檢查是否有設定 API Key
     if (!CWA_API_KEY) {
@@ -31,24 +34,26 @@ const getKaohsiungWeather = async (req, res) => {
     }
 
     // 呼叫 CWA API - 一般天氣預報（36小時）
-    // API 文件: https://opendata.cwa.gov.tw/dist/opendata-swagger.html
     const response = await axios.get(
       `${CWA_API_BASE_URL}/v1/rest/datastore/F-C0032-001`,
       {
         params: {
           Authorization: CWA_API_KEY,
-          locationName: "臺北市",
+          locationName: targetCity, // 請求臺北市
         },
       }
     );
 
-    // 取得高雄市的天氣資料
-    const locationData = response.data.records.location[0];
+    // 【修正點 2】 修正數據查找邏輯：
+    // 使用 find() 精確查找 CWA 回傳的陣列中 locationName 為 '臺北市' 的物件
+    const locationData = response.data.records.location.find(
+        (loc) => loc.locationName === targetCity
+    );
 
     if (!locationData) {
       return res.status(404).json({
         error: "查無資料",
-        message: "無法取得高雄市天氣資料",
+        message: `無法取得 ${targetCity} 天氣資料，請確認城市名稱是否正確`,
       });
     }
 
@@ -131,7 +136,8 @@ app.get("/", (req, res) => {
   res.json({
     message: "歡迎使用 CWA 天氣預報 API",
     endpoints: {
-      kaohsiung: "/api/weather/kaohsiung",
+      // 【修正點 3】 修正根路由說明，使其與實際回傳的城市對齊
+      taipei: "/api/weather/taipei", 
       health: "/api/health",
     },
   });
@@ -141,8 +147,8 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// 取得高雄天氣預報
-app.get("/api/weather/kaohsiung", getKaohsiungWeather);
+// 【修正點 4】 修正路由路徑與函數名稱對齊
+app.get("/api/weather/taipei", getTaipeiWeather);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
